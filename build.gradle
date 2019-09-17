@@ -1,0 +1,76 @@
+buildscript {
+  repositories {
+    mavenCentral()
+  }
+}
+
+// gradle plugins
+plugins {
+  // Java EE Web project (see https://docs.gradle.org/current/userguide/war_plugin.html)
+  id 'war'
+  // more formatters and linters
+  id 'com.diffplug.gradle.spotless' version '3.24.2'
+}
+
+group = 'some.group'
+// version must be set _before_ applying helper.gradle
+version = '1.0.0'
+
+ext.isCI = System.env['CI_JOB_ID'] != null
+println "isCI: $isCI"
+
+// pin gradle wrapper version
+wrapper {
+  gradleVersion = '5.2'
+}
+
+// run spotless on every build
+// this must be in `afterEvaluate` since spotless tasks are not yet available
+// during evaluation
+if (!isCI) {
+  project.afterEvaluate {
+    compileJava.dependsOn('spotlessApply')
+  }
+}
+
+tasks.withType(Javadoc) {
+  options.encoding = 'UTF-8'
+}
+
+// use Java 7
+sourceCompatibility = 1.7
+targetCompatibility = 1.7
+
+// remote repositories for 3rd party dependencies
+repositories {
+  mavenCentral()
+}
+
+dependencies {
+  providedCompile 'javax:javaee-api:7.0'
+  providedCompile 'javax:javaee-web-api:7.0'
+}
+
+// MANIFEST.mf properties
+war {
+  manifest {
+    attributes 'Name': project.name
+    attributes 'Implementation-Version': version
+    attributes 'Implementation-Vendor': 'Company Name'
+    attributes 'Specification-Version': version
+    attributes 'Specification-Vendor': 'Company Name'
+  }
+}
+
+spotless {
+  format 'xml', {
+    target '**/*.xhtml'
+    eclipseWtp('html')
+    indentWithSpaces(2)
+    endWithNewline()
+    trimTrailingWhitespace()
+    paddedCell()
+    encoding 'UTF-8'
+  }
+}
+// vim: set filetype=groovy ts=2 sw=2 tw=120 et :
